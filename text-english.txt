@@ -1,0 +1,5 @@
+Open data is data that anyone can access, use and share.
+
+Open data becomes usable when made available in a common, machine-readable format.
+
+Open data must be licensed. Its licence must permit people to use the data in any way they want, including transforming, combining and sharing it with others, even commercially.
