@@ -16,8 +16,9 @@ class RePair:
 
     def repair(self, s, ch, d):
         while True:  # repeat until no pair occurs>1 time
-            words = s.split(' ')  # string to words
+            #words = s.split(' ')  # string to words
             bigrams = zip(s, s[1:])  # making bigrams
+
             counts = Counter(bigrams)  # counting bigrams
             res = counts.most_common()[0]  # Return a list of the n most common elements and their counts
             digram = ''.join(res[0])

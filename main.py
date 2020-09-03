@@ -25,37 +25,71 @@ import matplotlib
 matplotlib.style.use('ggplot')
 
 class AppCompression(QtWidgets.QMainWindow, design.Ui_Dialog):
+    global file_name
+    file_name=''
     global data
+    #global vals
+    global vals_d
+    global size
+    size=20
+    vals=[]
+    vals_d = {}
     data=""#global variable
+    global count_bwt, count_h, count_r
+    count_bwt = 0
+    count_h = 0
+    count_r = 0
     def __init__(self):
         super().__init__()
         self.setupUi(self) #инициализация нашего дизайна
         self.pushButton.clicked.connect(self.openFileNameDialog)
         self.pushButton_2.clicked.connect(self.combo_select)
         self.pushButton_3.clicked.connect(self.draw_charts)
+        self.pushButton_4.clicked.connect(self.clear_btn)
+        self.horizontalSlider.valueChanged[int].connect(self.changeValue)
+
+
+    def changeValue(self,value):
+        print(value)
+        global size
+        size=value
 
     def openFileNameDialog(self):
+        global file_name
         options = QFileDialog.Options()
         options = QFileDialog.DontUseNativeDialog
         fileName = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "",
                                                "All Files (*);;Python Files (*.py)", options=options)
-        fileName = fileName[0]
-        fname = open(fileName)
-        global data
-        data = fname.read()
-        self.textBrowser.setText(data)
-        fname.close()
+        print(fileName)
+        if str(fileName)=='(\'\', \'\')': #pроверка если файл не выбран
+            file_name=""
+        else:
+            fileName = fileName[0]
+            file_name = fileName
+            fname = open(fileName)
+            data = fname.read()
+            self.textBrowser.setText(data)
+            fname.close()
+        print("file_name", file_name)
+
 
     def evaluate(self, data1, s, d):
-        vals=[]
+        global size
+        print("size: ", size)
+        #size=20
+        #global vals
+        global vals_d
         if s == 'bwt':
+            global count_bwt
+            count_bwt+=1
             sum = 0
             vals_bwt = []
-            for i in range(1, 21):
+            for i in range(1, size+1):
                 rnd_txt = RandomText(data1)
                 data = rnd_txt.makeRandomText(i)
                 pre_text = self.textBrowser.toPlainText()
                 self.textBrowser.setText(pre_text+"  "+str(i)+": "+data+ " \n \n")
+                initial_len =len(data)
                 t1_start = time.perf_counter_ns()
                 bwt = BWT(data)
                 transform_bwt = bwt.transform()
@@ -69,32 +103,24 @@ class AppCompression(QtWidgets.QMainWindow, design.Ui_Dialog):
                 vals_bwt.append(t1_stop - t1_start)
                 pre_text2 = self.textBrowser_2.toPlainText()
                 self.textBrowser_2.setText(pre_text2+str(i)+ "BWT: "+transform_bwt+" RLE: "+transform_rle+" RLE-DECODE: "+decode_rle+" \n")
+                #print("len of transform_rle:", len(transform_rle))
+                #print("koef = "+str(initial_len/len(transform_rle)))
+            key = "".join(s+str(count_bwt))
+            vals_d[s]=vals_bwt
             pre_text = self.textBrowser_3.toPlainText()
             self.textBrowser_3.setText(pre_text  + 'Sum for bwt: '+str(sum)+ "\n")
             pre_text2 = self.textBrowser_2.toPlainText()
             self.textBrowser_2.setText(pre_text2  + "; length of the compressed text: " + str(len(transform_rle)) + ";  initial length: " + str(len(data))+ "\n")
-            #rb = xlrd.open_workbook('sheet.xls', formatting_info=True)
-            #sheet = rb.sheet_by_index(0)
-            #vals_bwt = pre_text.split()
-            vals.append(vals_bwt)
-            #print(vals_bwt)
-            """for i in range(0, len(vals_bwt)):
-                vals_bwt[i]=int(vals_bwt[i])
-            print("after int")"""
-            """wb = xlwt.Workbook()
-            ws = wb.add_sheet('Test', cell_overwrite_ok=True)
-            for i in range(0, len(vals_bwt)):
-                el = vals_bwt[i]
-                print(el)
-                ws.write(i, 0, el)
-            wb.save('sheet_w.xls')"""
 
         elif s=='huffman':
+            global count_h
+            count_h+=1
             sum=0
             vals_h = []
-            for i in range(1, 21):
+            for i in range(1, size+1):
                 rnd_txt = RandomText(data1)
                 data = rnd_txt.makeRandomText(i)
+                initial_len = len(data)
                 pre_text = self.textBrowser.toPlainText()
                 self.textBrowser.setText(pre_text + " " + str(i) + ": " + data+ " \n \n")
                 t1_start = time.perf_counter_ns()
@@ -111,77 +137,84 @@ class AppCompression(QtWidgets.QMainWindow, design.Ui_Dialog):
                 pre_text2 = self.textBrowser_2.toPlainText()
                 self.textBrowser_2.setText(pre_text2  +"encoded: " + encoded+ "Decoded-string: "+decoded_str+"\n")
                 sum = sum + (t1_stop - t1_start)
+                #print("len of transform_rle:", len(huffmanCode))
+                #print("koef = " + str(initial_len / len(huffmanCode)))
+            key = "".join(s + str(count_h))
+            vals_d[key] = vals_h
             pre_text = self.textBrowser_3.toPlainText()
             self.textBrowser_3.setText(pre_text  + 'Sum for Huffman: ' + str(sum)+ "\n")
             self.textBrowser_2.setText(pre_text2  +"length of Huffmancode: " + str(len(huffmanCode)) + ";  initial length: " + str(len(data))+ "\n")
-            #print(vals_h)
-            vals.append(vals_h)
-            """wb = xlwt.Workbook()
-            ws = wb.add_sheet('Test', cell_overwrite_ok=True)
-            for i in range(0, len(vals_h)):
-                el = vals_h[i]
-                print(el)
-                ws.write(i, 1, el)
-            wb.save('sheet_w.xls')"""
 
         elif s=='repair':
             sum = 0
             vals_r=[]
-            for i in range(1, 21):
+            global count_r
+            count_r+=1
+            for i in range(1, size+1):
                 rnd_txt = RandomText(data1)
                 data = rnd_txt.makeRandomText(i)
+                initial_len = len(data)
                 pre_text = self.textBrowser.toPlainText()
                 self.textBrowser.setText(pre_text + " " + str(i) + ": " + data + " \n \n")
                 t1_start = time.perf_counter_ns()
                 repair = RePair(data)
                 ch = 'A'
                 rules = {}
-                rules, s = repair.repair(data, ch, rules)
+                rules, s1 = repair.repair(data, ch, rules)
                 #decomp_string=repair.decomp(rules,s)
                 decomp_string=""
                 t1_stop = time.perf_counter_ns()
                 vals_r.append(t1_stop - t1_start)
                 pre_text2 = self.textBrowser_2.toPlainText()
-                self.textBrowser_2.setText(pre_text2 + "Rules: " + str(rules) + "; s: " + s +"Decomp string: "+decomp_string)
+                self.textBrowser_2.setText(pre_text2 + "Rules: " + str(rules) + "; s: " + s1 +"Decomp string: "+decomp_string)
                 pre_text = self.textBrowser_3.toPlainText()
                 self.textBrowser_3.setText(pre_text  + str(t1_stop - t1_start)+ "\n")
                 sum = sum + (t1_stop - t1_start)
+                #print("len of transform_rle:", len(s1))
+                #print("koef = " + str(initial_len / len(s1)))
+            key = "".join(s + str(count_r))
+            vals_d[key] = vals_r
             pre_text = self.textBrowser_3.toPlainText()
             self.textBrowser_3.setText(pre_text  + 'Sum for RePair: ' + str(sum)+ "\n")
             pre_text2 = self.textBrowser_2.toPlainText()
             self.textBrowser_2.setText(pre_text2 + ' initial length: ' + str(len(data)) + 'len(RePair): ' + str(len(s)))
-            #print(vals_r)
-            vals.append(vals_r)
-            """wb = xlwt.Workbook()
-            ws = wb.add_sheet('Test', cell_overwrite_ok=True)
-            for i in range(0, len(vals_r)):
-                el = vals_r[i]
-                print(el)
-                ws.write(i, 2, el)
-            wb.save('sheet_w.xls')"""
-        print("before excel")
-        if count(vals)>3:
-            wb = xlwt.Workbook()
-            ws = wb.add_sheet('Test', cell_overwrite_ok=True)
-            print("vals: ",len(vals))
-            for j in range(0, len(vals)):
-                for i in range(0, len(vals)):
-                    print("j: "+j)
-                    #el = vals[j[i]]
-                    #print(el)
-                    #ws.write(i, j, el)
-           # wb.save('sheet_w.xls')
+        self.write_to_excel()
 
-
+    def write_to_excel(self):
+        global vals_d
+        wb = xlwt.Workbook()
+        ws = wb.add_sheet('Test', cell_overwrite_ok=True)
+        print("vals_d: ", vals_d)
+        count = 0
+        for i in vals_d:
+            vals_arr = vals_d.get(i)
+            # print(str(i))
+            ws.write(0, count, i)
+            for j in range(0, len(vals_arr)):
+                el = vals_arr[j]
+                print(str(el))
+                ws.write(j + 1, count, el)
+            count += 1
+        wb.save('sheet_w.xls')
+    def clear_btn(self):
+        self.textBrowser.setText("");
+        self.textBrowser_2.setText("");
+        self.textBrowser_3.setText("");
 
     def combo_select(self):
         global data
+        global file_name
         # if data == "":
-        if self.checkBox.isChecked():
-            print("checked")
-            file_name = 'rle.txt'
-        else:
-            file_name = 'alice.txt'
+        #print("file_name",file_name)
+        if file_name == "":
+            if self.checkBox.isChecked():
+                print("checked")
+                file_name = 'rle.txt'
+            else:
+                file_name = 'alice.txt'
+        #else:
+            #file_name
+
         content = self.comboBox.currentText() # finding the content of current item in combo box
         if content == "BWT+RLE":
             self.evaluate(file_name,'bwt',1)
@@ -190,7 +223,6 @@ class AppCompression(QtWidgets.QMainWindow, design.Ui_Dialog):
             self.evaluate(file_name, 'huffman', 20)
         elif content == "RePair":
             self.evaluate(file_name, 'repair', 1)
-
         elif content == "DNA":
             f = open('DNA.txt', 'r')
             data = f.read()
@@ -202,26 +234,17 @@ class AppCompression(QtWidgets.QMainWindow, design.Ui_Dialog):
             f.close()
 
     def draw_charts(self):
-        """rb = xlrd.open_workbook('sheet.xls', formatting_info=True)
-        sheet = rb.sheet_by_index(0)
-        wb = xlwt.Workbook()
-        ws = wb.add_sheet('Test', cell_overwrite_ok=True)
-        vals = {1, 2, 3, 4, 5, 6, 10, 12, 13}
-        for i in range(1, 9):
-            row = sheet.row_values(0)
-            for c_el in row:
-                el = vals.pop()
-                ws.write(i, 0, el)
-                print(el)
-        wb.save('xl_rec2.xls')"""
         table = pd.read_excel('sheet_w.xls')
-        x = table.values[:, 0]
-        y = table.values[:, 1]
-        z = table.values[:, 2]
         plt.figure(figsize=(100, 100))
-        plt.plot(x)
-        plt.plot(y)
-        plt.plot(z)
+        plt.title("Wykres działania ałgorytmów")
+        tab_len = len(table.columns.ravel())
+        for i in range(0, tab_len):
+            el = table.values[:, i]
+            plt.plot(el,label=table.columns.ravel()[i])
+        legend = plt.legend(loc='upper left', shadow=True, fontsize='x-large')
+        #plt.axis.set_xlabel('X')
+        plt.ylabel('Сzas działania algorytmu')
+        plt.xlabel('Rozmiar przetwarzanych danych')
         plt.show()
 
 
